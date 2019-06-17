@@ -1,7 +1,9 @@
 version: '3'
 services:
   fmd-1:
-    build: .
+    build:
+      context: ../
+      dockerfile: docs/dockerfile
     ports:
       - 8080:5000
     environment:
@@ -12,7 +14,9 @@ services:
       - database-mysql-1:database-mysql-1
 #      - database-postgres-1:database-postgres-1
   fmd-2:
-    build: .
+    build:
+      context: ../
+      dockerfile: docs/dockerfile
     ports:
       - 8081:5000
     environment:

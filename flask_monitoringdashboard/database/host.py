@@ -8,12 +8,12 @@ from sqlalchemy import asc, func, desc
 from sqlalchemy.orm.exc import NoResultFound
 
 
-def add_host(db_session, host_name: str, host_ip: str = "unknown", host_id: int=None):
-    """ Adds a host to the database. Returns the id.
+def add_host(db_session, host_name: str, host_ip: str = "unknown", host_id: int = None):
+    """ Adds a host to the database. Returns the id of the newly created host.
     :param db_session: session for the database
     :param host_name: name of the machine or container
     :param host_ip: ip address of the machine or container
-    :param host_id: id specified by the user
+    :param host_id: id that has been specified by the user
     :return the id of the host after it was stored in the database
     """
     if host_id:
@@ -25,12 +25,12 @@ def add_host(db_session, host_name: str, host_ip: str = "unknown", host_id: int=
     return host.id
 
 
-def get_host_name_by_id(db_session, host_id: int):
+def get_host_by_id(db_session, host_id: int):
     """
-    Returns the Host id from a given hostname
+    Returns the Host instance from a given host id
     If the result doesn't exist in the database, None is returned.
     :param db_session: session for the database
-    :param Host id: int
+    :param host_id:
     :return host_name: string with the host name
     """
     try:
@@ -52,8 +52,8 @@ def get_hosts(db_session):
 
 def get_host_hits(db_session):
     """
-    Returns all endpoint names and total hits from the database.
+    Returns all host id's and total hits from the database.
     :param db_session: session for the database
-    :return list of (endpoint name, total hits) tuples
+    :return list of (host id, total hits) tuples
     """
     return db_session.query(Request.host_id, func.count(Request.id)).group_by(Request.host_id).all()

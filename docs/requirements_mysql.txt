@@ -1,0 +1,2 @@
+pymysql               # for mysql database connections
+psycopg2              # for postgres database connections

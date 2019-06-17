@@ -29,10 +29,8 @@ def count_requests(db_session, endpoint_id, *where):
 
 def count_hosts(db_session):
     """
-    Return the number of hits for a specific endpoint (possible with more filter arguments).
+    Return the number of hosts this FMD instance can see
     :param db_session: session for the database
-    :param endpoint_id: id of the endpoint
-    :param where: additional arguments
     """
     return count_rows(db_session, Host.id)
 

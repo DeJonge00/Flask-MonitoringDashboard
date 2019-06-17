@@ -46,9 +46,9 @@ class TestHost(unittest.TestCase):
         Tests retrieval of host by name
         """
 
-        from flask_monitoringdashboard.database.host import get_host_name_by_id
+        from flask_monitoringdashboard.database.host import get_host_by_id
         with session_scope() as db_session:
-            host = get_host_name_by_id(db_session, 1)
+            host = get_host_by_id(db_session, 1)
             self.assertEqual(host.id, 1)
 
     def test_get_host_hits(self):

@@ -13,7 +13,7 @@ from flask_monitoringdashboard.database.data_grouped import get_endpoint_data_gr
     get_version_data_grouped, get_host_data_grouped
 from flask_monitoringdashboard.database.endpoint import get_last_requested, get_endpoints, get_endpoint_by_name, \
     update_endpoint
-from flask_monitoringdashboard.database.host import get_host_name_by_id
+from flask_monitoringdashboard.database.host import get_host_by_id
 from flask_monitoringdashboard.database.versions import get_first_requests
 
 
@@ -106,7 +106,7 @@ def get_host_performance(db_session, host_ids: [str], endpoint_ids: [str]):
     :param endpoints: a list of endpoints, encoded by their id
     :return: for every endpoint in endpoints, a list with the performance
     """
-    db_host_ids = [(host, get_host_name_by_id(db_session, host)) for host in host_ids]
+    db_host_ids = [(host, get_host_by_id(db_session, host)) for host in host_ids]
     data = get_host_data_grouped(db_session, lambda x: x, Request.endpoint_id.in_(endpoint_ids))
     return [{
         'name': name,

@@ -31,12 +31,15 @@ def loc():
 blueprint = Blueprint('dashboard', __name__, template_folder=loc() + 'templates')
 
 
-def get_host_id():
+def confirm_host():
+    """
+    This function adds a new host to the database if there is no host there representing this instance.
+    This function also sets the host's id as a variable in the config class.
+    """
     from flask_monitoringdashboard.database.host import add_host, get_hosts
     from flask_monitoringdashboard.database import session_scope
 
     with session_scope() as db_session:
-        print([host.id for host in get_hosts(db_session)])
         try:
             if config.host_id and int(config.host_id) in [host.id for host in get_hosts(db_session)]:
                 return
@@ -55,7 +58,7 @@ def bind(app, schedule=True):
     """
     config.app = app
 
-    get_host_id()
+    confirm_host()
     # Provide a secret-key for using WTF-forms
     if not app.secret_key:
         log('WARNING: You should provide a security key.')

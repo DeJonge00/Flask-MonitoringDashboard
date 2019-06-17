@@ -41,17 +41,9 @@ class Config(object):
         self.guest_password = ['guest_password']
         self.security_token = 'cc83733cb0af8b884ff6577086b87909'
 
-        try:
-            self.host_name = os.environ['CONTAINER_NAME']
-        except KeyError:
-            try:
-                self.host_name = os.environ['COMPUTERNAME']
-            except KeyError:
-                self.host_name = 'Unknown'
-        try:
-            self.host_id = os.environ['CONTAINER_ID']
-        except KeyError:
-            self.host_id = None
+        self.host_name = os.environ.get('CONTAINER_NAME', os.environ.get('COMPUTERNAME', 'Unknown'))
+        self.host_id = os.environ.get('CONTAINER_ID', None)
+
         # visualization
         self.colors = {}
         self.timezone = pytz.timezone(str(get_localzone()))
