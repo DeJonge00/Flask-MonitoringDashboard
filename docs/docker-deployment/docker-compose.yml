@@ -1,0 +1,78 @@
+version: '3'
+services:
+  database-mysql-1:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'db1'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      - 3306:3306
+    expose:
+      - 3306
+    volumes:
+      - my-db:/mysql
+    networks: ['fmd']
+  database-postgres-1:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: 'user'
+      POSTGRES_PASSWORD: 'password'
+      POSTGRES_DB: 'mydb'
+    ports:
+      - 5432:5432
+    expose:
+      - 5432
+    volumes:
+      - my-db:/postgres
+    networks: ['fmd']
+  fmd-1:
+    build:
+      context: ../../
+      dockerfile: ./docs/docker-deployment/dockerfile
+    environment:
+      FLASK_APP: main.py
+      CONTAINER_NAME: 'fmd-1'
+      CONTAINER_ID: 1
+      DATABASE_NAME: 'mysql+pymysql://user:password@database-mysql-1:3306/db1'
+    networks: ['fmd']
+    depends_on:
+      - database-mysql-1
+    expose:
+      - 5000
+#    ports:
+#      - 8080:5000
+  fmd-2:
+    build:
+      context: ../../
+      dockerfile: ./docs/docker-deployment/dockerfile
+    environment:
+      FLASK_APP: main.py
+      CONTAINER_NAME: 'fmd-2'
+      CONTAINER_ID: 2
+      DATABASE_NAME: 'postgresql://user:password@database-postgres-1:5432/mydb'
+    networks: ['fmd']
+    depends_on:
+      - database-postgres-1
+    expose:
+      - 5000
+#    ports:
+#      - 8081:5000
+  nginx:
+    image: nginx:latest
+    ports:
+      - 8080:8080
+      - 8081:8081
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./proxy.conf:/etc/nginx/proxy.conf
+    depends_on:
+      - fmd-1
+      - fmd-2
+    networks: ['fmd']
+volumes:
+  my-db:
+networks: {fmd: {}}

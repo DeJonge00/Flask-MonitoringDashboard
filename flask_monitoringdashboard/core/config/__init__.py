@@ -30,10 +30,6 @@ class Config(object):
         self.sampling_period = 0
         self.enable_logging = True
 
-        # database
-        self.database_name = 'sqlite:///flask_monitoringdashboard.db'
-        self.table_prefix = ''
-
         # authentication
         self.username = 'admin'
         self.password = 'admin'
@@ -43,6 +39,14 @@ class Config(object):
 
         self.host_name = os.environ.get('CONTAINER_NAME', os.environ.get('COMPUTERNAME', 'Unknown'))
         self.host_id = os.environ.get('CONTAINER_ID', None)
+
+        # database
+        self.database_name = 'sqlite:///flask_monitoringdashboard.db'
+        self.table_prefix = ''
+
+        # Reverse proxy setting (Only used with multiple databases)
+        self.reverse_proxy_ip = None
+        self.reverse_proxy_ports = []
 
         # visualization
         self.colors = {}

@@ -11,11 +11,20 @@ import flask_monitoringdashboard as dashboard
 
 app = Flask(__name__)
 
+# Using a local deployment with a dedicated database
 dashboard.config.version = '3.2'
 dashboard.config.group_by = '2'
 # dashboard.config.database_name = 'sqlite:///data.db'
-dashboard.config.database_name = 'mysql+pymysql://user:password@database-mysql-1:3306/db1'
+# dashboard.config.database_name = 'mysql+pymysql://user:password@database-mysql-1:3306/db1'
 # dashboard.config.database_name = 'postgresql://user:password@database-postgres-1:5432/mydb'
+
+# Using multiple hosts and databases, deployed using the example docker-compose file
+from os import environ
+
+dashboard.config.database_name = environ['DATABASE_NAME']
+dashboard.config.reverse_proxy_ip = 'localhost'
+dashboard.config.reverse_proxy_ports = [8080, 8081]
+
 dashboard.bind(app)
 
 

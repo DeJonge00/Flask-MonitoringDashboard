@@ -1,6 +1,6 @@
 import datetime
 
-from flask import jsonify
+from flask import jsonify, request
 
 from flask_monitoringdashboard import blueprint, config
 from flask_monitoringdashboard.core.auth import secure
@@ -29,28 +29,25 @@ def deploy_config():
     """
     :return: A JSON-object with configuration details
     """
+
     return jsonify({
         'database_name': config.database_name,
         'username': config.username,
         'guest_username': config.guest_username,
         'outlier_detection_constant': config.outlier_detection_constant,
         'timezone': str(config.timezone),
-        'colors': config.colors
+        'colors': config.colors,
+        'all_database_names': config.all_database_names
     })
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+@blueprint.route('/api/deploy_container_config')
+@secure
+def deploy_container_config():
+    """
+    :return: A JSON-object with sibling container details
+    """
+    return jsonify({
+        'reverse_proxy_ip': config.reverse_proxy_ip,
+        'reverse_proxy_ports': config.reverse_proxy_ports
+    })

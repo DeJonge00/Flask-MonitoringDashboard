@@ -1,6 +1,6 @@
 from functools import wraps
 
-from flask import session, redirect, url_for
+from flask import session, redirect, url_for, request
 
 from flask_monitoringdashboard import config
 
@@ -35,7 +35,9 @@ def secure(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if session and session.get(config.link + '_logged_in'):
+        if (session and session.get(config.link + '_logged_in')) \
+                or request.headers.get('Authorization',
+                                       '') == 'Bearer ' + config.username + ':' + config.password:  # TODO add token encryption
             return func(*args, **kwargs)
         return redirect(url_for('dashboard.login'))
 

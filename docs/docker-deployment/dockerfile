@@ -1,8 +1,8 @@
 FROM python:3.7.3-stretch
 ADD flask_monitoringdashboard /fmd/flask_monitoringdashboard
 ADD requirements.txt /fmd/flask_monitoringdashboard
-ADD docs/requirements_mysql.txt /fmd/flask_monitoringdashboard
+ADD docs/docker-deployment/requirements_docker.txt /fmd/flask_monitoringdashboard
 WORKDIR /fmd/flask_monitoringdashboard
 RUN pip install -r requirements.txt
-RUN pip install -r requirements_mysql.txt
+RUN pip install -r requirements_docker.txt
 CMD ["flask", "run", "-h", "0.0.0.0"]

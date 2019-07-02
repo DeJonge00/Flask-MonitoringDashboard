@@ -1,5 +1,7 @@
+//TODO Alert user that the data on this webpage is retrieved from multiple sources, unlike the other pages (like API performance)
+
 function HostPerformanceController($scope, $http, menuService, formService, infoService,
-                                  plotlyService, endpointService) {
+                                   plotlyService, endpointService) {
     endpointService.reset();
     menuService.reset('host_performance');
     $scope.title = 'Host Performance';
@@ -13,35 +15,49 @@ function HostPerformanceController($scope, $http, menuService, formService, info
 
     // Set the form handler
     formService.clear();
-    formService.addHosts();
-    formService.addEndpoints();
 
-    formService.setReload(function () {
-        $http.post('api/host_performance', {
-            data: {
-                ids: formService.getMultiSelection('hosts'),
-                endpoints: formService.getMultiSelection('endpoints')
-            }
-        }).then(function (response) {
-            console.log(response.data);
-            let data = response.data.map(obj => {
-                return {
-                    x: obj.values,
-                    type: 'box',
-                    name: obj.name + ' (id=' + obj.id + ')',
-                    id: obj.id
-                };
-            });
+    // Retrieve the locations where the other hosts machines can be found
+    $http.get('api/deploy_container_config').then(function (response) {
+        const reverse_proxy_ip = response.data.reverse_proxy_ip;
+        const reverse_proxy_ports = response.data.reverse_proxy_ports;
 
-            console.log(data);
+        // Showing all endpoints from all hosts on the webpage
+        const login_token = 'Bearer admin:admin'; //TODO retrieve un+pw from config
+        formService.addHosts(reverse_proxy_ip, reverse_proxy_ports, login_token);
+        formService.addEndpoints(reverse_proxy_ip, reverse_proxy_ports, login_token);
 
-            plotlyService.chart(data, {
-                xaxis: {
-                    title: 'Execution time (ms)',
-                },
-                yaxis: {
-                    type: 'category'
-                }
+        formService.setReload(function () {
+            let host_performance_data = [];
+            reverse_proxy_ports.forEach(function (port) {
+                const url = 'http://' + reverse_proxy_ip + ':' + port + '/dashboard/api/host_performance';
+
+                // Retrieve host performance data from every host
+                $http.post(url, {
+                    data: {
+                        ids: formService.getMultiSelection('hosts'),
+                        endpoints: formService.getMultiSelection('endpoints')
+                    }
+                }).then(function (response) {
+                    // Add data from all hosts (so far) together
+                    response.data.map(obj => {
+                        host_performance_data.push({
+                            x: obj.values,
+                            type: 'box',
+                            name: obj.name + ' (id=' + obj.id + ')',
+                            id: obj.id
+                        });
+                    });
+
+                    // Build and show chart on the webpage
+                    plotlyService.chart(host_performance_data, {
+                        xaxis: {
+                            title: 'Execution time (ms)',
+                        },
+                        yaxis: {
+                            type: 'category'
+                        }
+                    });
+                }).catch(console.error);
             });
         });
     });
