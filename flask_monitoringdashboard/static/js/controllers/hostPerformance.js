@@ -24,14 +24,21 @@ function HostPerformanceController($scope, $http, menuService, formService, info
         // Showing all endpoints from all hosts on the webpage
         const login_token = 'Bearer admin:admin'; //TODO retrieve un+pw from config
         formService.addHosts(reverse_proxy_ip, reverse_proxy_ports, login_token);
-        formService.addEndpoints(reverse_proxy_ip, reverse_proxy_ports, login_token);
+        formService.addEndpoints(reverse_proxy_ip, reverse_proxy_ports, login_token, true);
 
         formService.setReload(function () {
             let host_performance_data = [];
             reverse_proxy_ports.forEach(function (port) {
-                const url = 'http://' + reverse_proxy_ip + ':' + port + '/dashboard/api/host_performance';
+                let url = 'api/host_performance';
+                if (reverse_proxy_ip) {
+                    url = 'http://' + reverse_proxy_ip + ':' + port + '/dashboard/' + url;
+                }
 
                 // Retrieve host performance data from every host
+                // Skip redirect to login page
+                if (login_token) {
+                    $http.defaults.headers.common['Authorization'] = login_token;
+                }
                 $http.post(url, {
                     data: {
                         ids: formService.getMultiSelection('hosts'),

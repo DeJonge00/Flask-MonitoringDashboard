@@ -212,6 +212,10 @@ at least 1) in the application can be found under the **Dashboard** menu:
    requests for that endpoint. This provides information whether certain endpoints perform better (in terms of
    execution time) than other endpoints.
 
+6. **Host Performance:** This graph provides a row of information per host. In that row, you can find all the
+   requests on all selected endpoints for that host. This provides information whether certain hosts perform better
+   (in terms of execution time) than other hosts.
+
 Endpoint
 ~~~~~~~~~~~~~~
 

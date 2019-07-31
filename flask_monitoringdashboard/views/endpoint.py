@@ -1,14 +1,16 @@
-from flask import jsonify, request, json
+from flask import jsonify, request, json, Response
 
-from flask_monitoringdashboard import blueprint
+from flask_monitoringdashboard import blueprint, config
 from flask_monitoringdashboard.controllers.endpoints import get_endpoint_overview, get_api_performance, \
-    set_endpoint_rule, get_endpoint_versions, get_endpoint_users, get_host_performance
+    set_endpoint_rule, get_endpoint_versions, get_endpoint_users
 from flask_monitoringdashboard.core.auth import secure, admin_secure
 from flask_monitoringdashboard.core.utils import get_endpoint_details
-from flask_monitoringdashboard.database import session_scope, row2dict
+from flask_monitoringdashboard.database import session_scope, row2dict, Request
+from flask_monitoringdashboard.database.endpoint import get_users, get_ips, get_endpoints, get_endpoints_hits
+from flask_monitoringdashboard.database.host import retrieve_query_param_host
 from flask_monitoringdashboard.database.host import get_host_hits
-from flask_monitoringdashboard.database.endpoint import get_users, get_ips, get_endpoints, get_endpoints_hits, \
-    get_endpoint_by_name
+from flask_monitoringdashboard.database.endpoint import get_endpoint_by_name
+from flask_monitoringdashboard.controllers.endpoints import get_host_performance
 
 
 @blueprint.route('/api/overview')
@@ -16,10 +18,15 @@ from flask_monitoringdashboard.database.endpoint import get_users, get_ips, get_
 def get_overview():
     """
     Get information per endpoint about the number of hits and median execution time
+    :query_parameter: 'hosts' specifies hosts if it is not the current hosts,
+    'all' when all hosts in the database should be selected
     :return: A JSON-list with a JSON-object per endpoint
     """
     with session_scope() as db_session:
-        return jsonify(get_endpoint_overview(db_session))
+        hosts = retrieve_query_param_host(db_session)
+        if isinstance(hosts, Response):
+            return hosts
+        return jsonify(get_endpoint_overview(db_session, hosts))
 
 
 @blueprint.route('/api/users/<endpoint_id>')
@@ -30,7 +37,10 @@ def users(endpoint_id):
     :return: A JSON-list with all users of a specific endpoint (user represented by a string)
     """
     with session_scope() as db_session:
-        users_hits = get_users(db_session, endpoint_id)
+        hosts = retrieve_query_param_host(db_session)
+        if isinstance(hosts, Response):
+            return hosts
+        users_hits = get_users(db_session, endpoint_id, Request.host_id.in_(hosts))
         dicts = []
         for uh in users_hits:
             dicts.append({'user': uh[0], 'hits': uh[1]})
@@ -45,7 +55,10 @@ def ips(endpoint_id):
     :return: A JSON-list with all IP-addresses of a specific endpoint (ip represented by a string)
     """
     with session_scope() as db_session:
-        ips_hits = get_ips(db_session, endpoint_id)
+        hosts = retrieve_query_param_host(db_session)
+        if isinstance(hosts, Response):
+            return hosts
+        ips_hits = get_ips(db_session, endpoint_id, Request.host_id.in_(hosts))
         dicts = []
         for ih in ips_hits:
             dicts.append({'ip': ih[0], 'hits': ih[1]})
@@ -71,7 +84,10 @@ def endpoints_hits():
         For more information per endpoint, see :func: get_overview
     """
     with session_scope() as db_session:
-        end_hits = get_endpoints_hits(db_session)
+        hosts = retrieve_query_param_host(db_session)
+        if isinstance(hosts, Response):
+            return hosts
+        end_hits = get_endpoints_hits(db_session, Request.host_id.in_(hosts))
         dicts = []
         for et in end_hits:
             dicts.append({'name': et[0], 'hits': et[1]})
@@ -96,47 +112,10 @@ def api_performance():
     endpoints = data['endpoints']
 
     with session_scope() as db_session:
-        return jsonify(get_api_performance(db_session, endpoints))
-
-
-@blueprint.route('/api/host_hits')
-@secure
-def host_hits():
-    """
-    :return: A JSON-list with information about every host and its total number of hits (encoded in a JSON-object)
-        For more information per endpoint, see :func: get_overview
-    """
-    with session_scope() as db_session:
-        host_hits = get_host_hits(db_session)
-        dicts = []
-        for et in host_hits:
-            dicts.append({'name': et[0], 'hits': et[1]})
-        return jsonify(dicts)
-
-
-@blueprint.route('/api/host_performance', methods=['POST'])
-@secure
-def host_performance():
-    """
-    input must be a JSON-object, with the following value: {
-          'data': {
-            'ids': [id1, id2],
-            'endpoints': [endpoint1, endpoint2]
-          }
-        }
-    :return: A JSON-list for every endpoint with the following JSON-object: {
-          'name': 'hostname',
-          'id': hostid,
-          'values': [100, 101, 102, ...]
-        }
-    """
-
-    data = json.loads(request.data)['data']
-    host_ids = data['ids']
-
-    with session_scope() as db_session:
-        endpoints = [get_endpoint_by_name(db_session, name).id for name in data['endpoints']]
-        return jsonify(get_host_performance(db_session, host_ids, endpoints))
+        hosts = retrieve_query_param_host(db_session)
+        if isinstance(hosts, Response):
+            return hosts
+        return jsonify(get_api_performance(db_session, endpoints, Request.host_id.in_(hosts)))
 
 
 @blueprint.route('/api/set_rule', methods=['POST'])
@@ -167,7 +146,10 @@ def endpoint_info(endpoint_id):
         - url: link to this endpoint
     """
     with session_scope() as db_session:
-        return jsonify(get_endpoint_details(db_session, endpoint_id))
+        hosts = retrieve_query_param_host(db_session)
+        if isinstance(hosts, Response):
+            return hosts
+        return jsonify(get_endpoint_details(db_session, endpoint_id, Request.host_id.in_(hosts)))
 
 
 @blueprint.route('/api/endpoint_versions/<endpoint_id>', methods=['POST'])
@@ -186,3 +168,47 @@ def endpoint_users(endpoint_id):
         data = json.loads(request.data)['data']
         users = data['users']
         return jsonify(get_endpoint_users(db_session, endpoint_id, users))
+
+
+# TODO Place this in different file, trying results in endpoint not found?
+@blueprint.route('/api/host_hits')
+@secure
+def host_hits():
+    """
+    :return: A JSON-list with information about every host and its total number of hits (encoded in a JSON-object)
+        For more information per endpoint, see :func: get_overview
+    """
+    with session_scope() as db_session:
+        hosts = retrieve_query_param_host(db_session, default_all=True)
+        if isinstance(hosts, Response):
+            return hosts
+        hits = get_host_hits(db_session, Request.host_id.in_(hosts))
+        dicts = []
+        for et in hits:
+            dicts.append({'name': et[0], 'hits': et[1]})
+        return jsonify(dicts)
+
+
+@blueprint.route('/api/host_performance', methods=['POST'])
+@secure
+def host_performance():
+    """
+    input must be a JSON-object, with the following value: {
+          'data': {
+            'ids': [id1, id2],
+            'endpoints': [endpoint1, endpoint2]
+          }
+        }
+    :return: A JSON-list for every endpoint with the following JSON-object: {
+          'name': 'hostname',
+          'id': hostid,
+          'values': [100, 101, 102, ...]
+        }
+    """
+
+    data = json.loads(request.data)['data']
+    host_ids = data['ids']
+
+    with session_scope() as db_session:
+        endpoints = [get_endpoint_by_name(db_session, name).id for name in data['endpoints']]
+        return jsonify(get_host_performance(db_session, host_ids, endpoints))

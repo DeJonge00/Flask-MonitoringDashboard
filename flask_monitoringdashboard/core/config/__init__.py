@@ -46,7 +46,7 @@ class Config(object):
 
         # Reverse proxy setting (Only used with multiple databases)
         self.reverse_proxy_ip = None
-        self.reverse_proxy_ports = []
+        self.reverse_proxy_ports = ['']
 
         # visualization
         self.colors = {}

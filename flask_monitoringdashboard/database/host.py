@@ -2,10 +2,25 @@
 Contains all functions that access a Host object
 """
 
+from flask import request, Response
+from flask_monitoringdashboard import config
 from flask_monitoringdashboard.database import Host, Request
 
 from sqlalchemy import asc, func, desc
 from sqlalchemy.orm.exc import NoResultFound
+
+
+def retrieve_query_param_host(db_session, default_all=False):
+    host = request.args.get('host', '')
+    if host == 'all' or (host == '' and default_all):
+        return [host.id for host in get_hosts(db_session)]
+    if host == '':
+        host = str(config.host_id)
+    try:
+        return [int(host_id) for host_id in host.split(',')]
+    except ValueError:
+        return Response("{'Invalid Input':'The query parameter 'host' received non-numbers'}", status=201,
+                        mimetype='application/json')
 
 
 def add_host(db_session, host_name: str, host_ip: str = "unknown", host_id: int = None):
@@ -50,10 +65,10 @@ def get_hosts(db_session):
     return db_session.query(Host).order_by(asc(Host.id))
 
 
-def get_host_hits(db_session):
+def get_host_hits(db_session, *where):
     """
     Returns all host id's and total hits from the database.
     :param db_session: session for the database
     :return list of (host id, total hits) tuples
     """
-    return db_session.query(Request.host_id, func.count(Request.id)).group_by(Request.host_id).all()
+    return db_session.query(Request.host_id, func.count(Request.id)).filter(*where).group_by(Request.host_id).all()

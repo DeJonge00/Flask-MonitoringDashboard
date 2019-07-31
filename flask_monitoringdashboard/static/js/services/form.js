@@ -67,13 +67,16 @@ app.service('formService', function ($http, endpointService, $filter) {
         });
     };
 
-    this.addEndpoints = function (rp_ip=null, rp_ports=[''], login_token=null) {
+    this.addEndpoints = function (rp_ip=null, rp_ports=[''], login_token=null, all_hosts=false) {
         let obj = addMultiSelect('endpoints');
         let data = {};
 
         rp_ports.forEach(function(port) {
             // Determine endpoint url
             let hits_url = 'api/endpoints_hits';
+            if (all_hosts) {
+                hits_url += '?host=all';
+            }
             if (rp_ip != null) {
                 hits_url = 'http://' + rp_ip + ':' + port + '/dashboard/' + hits_url;
             }

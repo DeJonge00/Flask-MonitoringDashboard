@@ -11,11 +11,12 @@ from flask_monitoringdashboard.database.endpoint import get_endpoint_by_id
 from flask_monitoringdashboard.database.request import get_date_of_first_request, get_date_of_first_request_version
 
 
-def get_endpoint_details(db_session, endpoint_id):
+def get_endpoint_details(db_session, endpoint_id, *where):
     """
     Returns details about an endpoint.
     :param db_session: session for the database
     :param endpoint_id: id of the endpoint
+    :param where: additional filtering for counting the nuber of hits
     :return dictionary
     """
     endpoint = get_endpoint_by_id(db_session, endpoint_id)
@@ -31,7 +32,7 @@ def get_endpoint_details(db_session, endpoint_id):
         'rules': [r.rule for r in get_rules(endpoint.name)],
         'monitor-level': endpoint.monitor_level,
         'url': get_url(endpoint.name),
-        'total_hits': count_requests(db_session, endpoint.id)
+        'total_hits': count_requests(db_session, endpoint.id, *where)
     }
 
 

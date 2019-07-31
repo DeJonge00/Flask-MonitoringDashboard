@@ -41,17 +41,18 @@ def group_request_times(datetimes):
     return hours_dict.items()
 
 
-def get_users(db_session, endpoint_id, limit=None):
+def get_users(db_session, endpoint_id, *where, limit=None):
     """
     Returns a list with the distinct group-by from a specific endpoint. The limit is used to filter the most used
     distinct.
     :param db_session: session for the database
     :param endpoint_id: the id of the endpoint to filter on
+    :param where: Potential extra filter clause
     :param limit: the max number of results
     :return a list of tuples (group_by, hits)
     """
     query = db_session.query(Request.group_by, func.count(Request.group_by)). \
-        filter(Request.endpoint_id == endpoint_id).group_by(Request.group_by). \
+        filter(Request.endpoint_id == endpoint_id and where).group_by(Request.group_by). \
         order_by(desc(func.count(Request.group_by)))
     if limit:
         query = query.limit(limit)
@@ -60,7 +61,7 @@ def get_users(db_session, endpoint_id, limit=None):
     return result
 
 
-def get_ips(db_session, endpoint_id, limit=None):
+def get_ips(db_session, endpoint_id, *where, limit=None):
     """
     Returns a list with the distinct group-by from a specific endpoint. The limit is used to filter the most used
     distinct.
@@ -70,7 +71,7 @@ def get_ips(db_session, endpoint_id, limit=None):
     :return a list with the group_by as strings.
     """
     query = db_session.query(Request.ip, func.count(Request.ip)). \
-        filter(Request.endpoint_id == endpoint_id).group_by(Request.ip). \
+        filter(Request.endpoint_id == endpoint_id, *where).group_by(Request.ip). \
         order_by(desc(func.count(Request.ip)))
     if limit:
         query = query.limit(limit)
@@ -124,13 +125,14 @@ def update_endpoint(db_session, endpoint_name, value):
     db_session.flush()
 
 
-def get_last_requested(db_session):
+def get_last_requested(db_session, *where):
     """
     Returns the accessed time of all endpoints.
     :param db_session: session for the database
+    :param where: Potential filter for the query
     :return list of tuples with name of the endpoint and date it was last used
     """
-    result = db_session.query(Endpoint.name, Endpoint.last_requested).all()
+    result = db_session.query(Endpoint.name, Endpoint.last_requested).filter(*where).all()
     db_session.expunge_all()
     return result
 
@@ -157,13 +159,15 @@ def get_endpoints(db_session):
         order_by(desc(func.count(Request.endpoint_id)))
 
 
-def get_endpoints_hits(db_session):
+def get_endpoints_hits(db_session, *where):
     """
     Returns all endpoint names and total hits from the database.
     :param db_session: session for the database
     :return list of (endpoint name, total hits) tuples
     """
     return db_session.query(Endpoint.name, func.count(Request.endpoint_id)). \
+        filter(*where). \
         join(Request). \
         group_by(Endpoint.name). \
-        order_by(desc(func.count(Request.endpoint_id))).all()
+        order_by(desc(func.count(Request.endpoint_id))). \
+        all()

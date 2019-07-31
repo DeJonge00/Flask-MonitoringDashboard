@@ -17,9 +17,10 @@ from flask_monitoringdashboard.database.host import get_host_by_id
 from flask_monitoringdashboard.database.versions import get_first_requests
 
 
-def get_endpoint_overview(db_session):
+def get_endpoint_overview(db_session, hosts: [int]):
     """
     :param db_session: session for the database
+    :param hosts: the host(s) for which the request should be filtered
     :return: A list of properties for each endpoint that is found in the database
     """
     week_ago = datetime.datetime.utcnow() - datetime.timedelta(days=7)
@@ -27,14 +28,16 @@ def get_endpoint_overview(db_session):
     today_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
     today_utc = to_utc_datetime(today_local)
 
-    hits_today = count_requests_group(db_session, Request.time_requested > today_utc)
-    hits_week = count_requests_group(db_session, Request.time_requested > week_ago)
-    hits = count_requests_group(db_session)
+    correct_host = Request.host_id.in_(hosts)
 
-    median_today = get_endpoint_data_grouped(db_session, median, Request.time_requested > today_utc)
-    median_week = get_endpoint_data_grouped(db_session, median, Request.time_requested > week_ago)
-    median_overall = get_endpoint_data_grouped(db_session, median)
-    access_times = get_last_requested(db_session)
+    hits_today = count_requests_group(db_session, Request.time_requested > today_utc, correct_host)
+    hits_week = count_requests_group(db_session, Request.time_requested > week_ago, correct_host)
+    hits = count_requests_group(db_session, Request.host_id.in_(hosts))
+
+    median_today = get_endpoint_data_grouped(db_session, median, Request.time_requested > today_utc, correct_host)
+    median_week = get_endpoint_data_grouped(db_session, median, Request.time_requested > week_ago, correct_host)
+    median_overall = get_endpoint_data_grouped(db_session, median, correct_host)
+    access_times = get_last_requested(db_session, correct_host)
 
     return [{
         'id': endpoint.id,
@@ -85,14 +88,14 @@ def get_endpoint_versions(db_session, endpoint_id, versions):
     } for v in versions]
 
 
-def get_api_performance(db_session, endpoints):
+def get_api_performance(db_session, endpoints, *where):
     """
     :param db_session: session for the database
     :param endpoints: a list of endpoints, encoded by their name
     :return: for every endpoint in endpoints, a list with the performance
     """
     db_endpoints = [get_endpoint_by_name(db_session, end) for end in endpoints]
-    data = get_endpoint_data_grouped(db_session, lambda x: simplify(x, 10))
+    data = get_endpoint_data_grouped(db_session, lambda x: simplify(x, 10), *where)
     return [{
         'name': end.name,
         'values': get_value(data, end.id, default=[])

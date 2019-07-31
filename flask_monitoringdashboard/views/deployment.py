@@ -17,6 +17,7 @@ def deploy_details():
     """
     with session_scope() as db_session:
         details = get_details(db_session)
+    print(details)
     details['first-request'] = to_local_datetime(datetime.datetime.fromtimestamp(details['first-request']))
     details['first-request-version'] = to_local_datetime(datetime.datetime.
                                                          fromtimestamp(details['first-request-version']))
